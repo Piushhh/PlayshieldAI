@@ -31,11 +31,26 @@ app = FastAPI(
 
 from fastapi import Request, Response
 
-origins = [
-    "https://playshieldai.dev", 
-    "https://www.playshieldai.dev", 
-    "https://playshield-frontend-nfzz4olvxq-uc.a.run.app"
-]
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_origin_regex="https://.*playshieldai\.dev",
+    allow_credentials=False, # Must be False for allow_origins=["*"]
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    logger.error("GLOBAL CRASH", error=str(exc), path=request.url.path)
+    print(traceback.format_exc())
+    return Response(
+        status_code=500,
+        content=f"Internal Server Error: {str(exc)}"
+    )
 
 @app.options("/{rest_of_path:path}")
 async def preflight_handler(request: Request, rest_of_path: str):
@@ -47,14 +62,6 @@ async def preflight_handler(request: Request, rest_of_path: str):
         "Access-Control-Allow-Credentials": "true",
     }
     return Response(status_code=200, headers=headers)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 # Routers

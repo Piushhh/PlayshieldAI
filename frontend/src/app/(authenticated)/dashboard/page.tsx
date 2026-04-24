@@ -36,16 +36,40 @@ function chartStyle() {
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStatsRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api
-      .getDashboardStats()
-      .then(setStats)
-      .catch((error) => {
-        console.error("Failed to load dashboard stats", error);
-      })
-      .finally(() => setLoading(false));
+    const loadStats = async () => {
+      try {
+        const data = await api.getDashboardStats();
+        setStats(data);
+      } catch (err) {
+        console.error("Failed to load dashboard stats", err);
+        setError(err instanceof Error ? err.message : "Unable to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadStats();
   }, []);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <div className="panel-card max-w-md p-10 text-center">
+          <p className="panel-kicker text-red-500">Stability alert</p>
+          <h2 className="section-title mt-4">Unable to load dashboard</h2>
+          <p className="panel-subtle mt-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="btn-primary mt-8"
+          >
+            Retry connection
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || !stats) {
     return (
@@ -62,9 +86,9 @@ export default function DashboardPage() {
   }
 
   const confidenceData = [
-    { name: "High risk", value: stats.high_confidence_count, fill: "#efcfbf" },
-    { name: "Review", value: stats.medium_confidence_count, fill: "#f3e37c" },
-    { name: "Low", value: stats.low_confidence_count, fill: "#c5df7b" },
+    { name: "High risk", value: stats?.high_confidence_count || 0, fill: "#efcfbf" },
+    { name: "Review", value: stats?.medium_confidence_count || 0, fill: "#f3e37c" },
+    { name: "Low", value: stats?.low_confidence_count || 0, fill: "#c5df7b" },
   ];
 
   return (
@@ -87,21 +111,21 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 gap-px border border-[var(--color-line)] bg-[var(--color-line)] sm:grid-cols-2">
             <StatCard
               title="Protected assets"
-              value={stats.total_assets}
+              value={stats?.total_assets || 0}
               icon={<FolderOpen size={18} />}
               trend="Registry coverage"
               tone="neutral"
             />
             <StatCard
               title="Open cases"
-              value={stats.open_cases}
+              value={stats?.open_cases || 0}
               icon={<ShieldAlert size={18} />}
               trend="Analyst queue"
               tone="warning"
             />
             <StatCard
               title="High confidence"
-              value={stats.high_confidence_count}
+              value={stats?.high_confidence_count || 0}
               icon={<TrendingUp size={18} />}
               trend="Immediate review"
               tone="success"
@@ -109,7 +133,7 @@ export default function DashboardPage() {
             <StatCard
               title="AI ready"
               value={
-                stats.gemini_overview?.find((item) => item.title === "Gemini ready")
+                stats?.gemini_overview?.find((item) => item.title === "Gemini ready")
                   ?.value || 0
               }
               icon={<Bot size={18} />}
@@ -185,7 +209,7 @@ export default function DashboardPage() {
           className="animate-in p-6"
         >
           <ResponsiveContainer width="100%" height={340}>
-            <AreaChart data={stats.trend_data ?? []}>
+            <AreaChart data={stats?.trend_data ?? []}>
               <defs>
                 <linearGradient id="detectionsFill" x1="0" x2="0" y1="0" y2="1">
                   <stop offset="0%" stopColor="#7cd5e9" stopOpacity={0.65} />
@@ -261,14 +285,14 @@ export default function DashboardPage() {
           <div className="mt-6 grid grid-cols-2 gap-px border border-[var(--color-line)] bg-[var(--color-line)]">
             <StatCard
               title="Detections"
-              value={stats.total_scans}
+              value={stats?.total_scans || 0}
               trend="Signals processed"
               icon={<Activity size={18} />}
               tone="neutral"
             />
             <StatCard
               title="Cases"
-              value={stats.total_detections}
+              value={stats?.total_detections || 0}
               trend="Potential infringements"
               icon={<ShieldAlert size={18} />}
               tone="info"

@@ -18,7 +18,7 @@ import type {
   UserProfileRecord,
 } from "@/lib/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE = "https://playshield-backend-nfzz4olvxq-uc.a.run.app";
 
 interface TokenPair {
   access_token: string;
@@ -164,7 +164,7 @@ class ApiClient {
   }
 
   async uploadAsset(formData: FormData) {
-    return this.request<AssetRecord>("/assets", {
+    return this.request<AssetRecord>("/assets/upload", {
       method: "POST",
       body: formData,
     });
@@ -298,6 +298,31 @@ class ApiClient {
 
   async deleteAccount() {
     return this.request<ApiMessage>("/account/delete", { method: "DELETE" });
+  }
+
+  // ── Generic Helpers ──────────────────
+  async get<T>(path: string, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(path, { ...options, method: "GET" });
+  }
+
+  async post<T>(path: string, body?: any, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(path, {
+      ...options,
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async patch<T>(path: string, body?: any, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(path, {
+      ...options,
+      method: "PATCH",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async delete<T>(path: string, options: RequestInit = {}): Promise<T> {
+    return this.request<T>(path, { ...options, method: "DELETE" });
   }
 }
 

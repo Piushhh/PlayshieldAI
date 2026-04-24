@@ -58,6 +58,7 @@ async def create_asset(
         media_type=MediaType(media_type),
         media_gcs_uri=gcs_uri,
         media_local_path=str(local_path),
+        gemini_status="pending",
     )
     db.add(asset)
     await db.flush()

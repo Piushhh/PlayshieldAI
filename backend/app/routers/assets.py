@@ -27,6 +27,7 @@ def _risk_label(confidence: float | None) -> str | None:
 
 
 @router.post("", response_model=AssetOut)
+@router.post("/upload", response_model=AssetOut)
 async def upload_asset(
     title: str = Form(...),
     license_type: str = Form("all_rights_reserved"),
@@ -44,9 +45,18 @@ async def upload_asset(
     # Rebuild FAISS index
     from app.services.detection_service import rebuild_index_from_db
     await rebuild_index_from_db(db)
+    
     # Audit log
     await log_action(db, user.id, "asset", asset.id, "created",
                      after_json={"title": asset.title, "media_type": media_type})
+    
+    # Ensure fields required by AssetOut are present for new asset
+    asset.open_case_count = 0
+    asset.latest_case_id = None
+    asset.latest_case_status = None
+    asset.latest_confidence = None
+    asset.highest_risk_label = None
+    
     return asset
 
 

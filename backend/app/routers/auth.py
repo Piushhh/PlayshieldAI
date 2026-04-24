@@ -43,15 +43,21 @@ async def verify(req: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
-    user = await authenticate_user(req.email, req.password, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not user.is_verified:
-        raise HTTPException(status_code=403, detail="Email not verified. Check your inbox for the verification link.")
-    return TokenResponse(
-        access_token=create_access_token(str(user.id), user.role.value),
-        refresh_token=create_refresh_token(str(user.id)),
-    )
+    try:
+        user = await authenticate_user(req.email, req.password, db)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not user.is_verified:
+            raise HTTPException(status_code=403, detail="Email not verified. Check your inbox for the verification link.")
+        return TokenResponse(
+            access_token=create_access_token(str(user.id), user.role.value),
+            refresh_token=create_refresh_token(str(user.id)),
+        )
+    except Exception as e:
+        import traceback
+        error_msg = f"INTERNAL LOGIN ERROR: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 @router.post("/forgot-password")

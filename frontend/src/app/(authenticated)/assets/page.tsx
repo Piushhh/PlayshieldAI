@@ -40,9 +40,11 @@ export default function AssetsPage() {
   const handleRunScan = async (assetId: string) => {
     setScanningAssetIds((prev) => new Set(prev).add(assetId));
     try {
+      // POST /assets/{id}/analyze
       await api.post(`/assets/${assetId}/analyze`, {});
       await loadAssets();
     } catch (currentError) {
+      console.error("AI Scan failed", currentError);
       setError(currentError instanceof Error ? currentError.message : "AI Scan failed");
     } finally {
       setScanningAssetIds((prev) => {
@@ -57,8 +59,9 @@ export default function AssetsPage() {
     const loadInitialAssets = async () => {
       try {
         const assetResponse = await api.getAssets();
-        setAssets(assetResponse);
+        setAssets(assetResponse ?? []);
       } catch (currentError) {
+        console.error("Initial load failed", currentError);
         setError(currentError instanceof Error ? currentError.message : "Unable to load assets");
       } finally {
         setLoading(false);
@@ -72,11 +75,14 @@ export default function AssetsPage() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setUploading(true);
+    setError(""); // Clear previous errors
     try {
+      // Use the dedicated upload route
       await api.uploadAsset(form);
       setShowUpload(false);
       loadAssets();
     } catch (currentError) {
+      console.error("Upload failed", currentError);
       setError(currentError instanceof Error ? currentError.message : "Upload failed");
     } finally {
       setUploading(false);
