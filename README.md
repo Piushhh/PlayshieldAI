@@ -1,136 +1,100 @@
-# 🛡️ PlayShield AI
+# 🛡️ PlayshieldAI — Enterprise IP Risk Management
 
-> AI-powered, multi-tenant content protection platform that detects unauthorized reuse of protected image/video assets. Features full user onboarding, email verification, in-app notifications, automatic Vertex AI Gemini rationale generation, and auditable takedown drafting.
+> An automated AI-powered platform designed to detect, triage, and manage Intellectual Property (IP) risks across digital landscapes. PlayshieldAI leverages Vertex AI Gemini 2.0 to provide stateful reasoning and auditable takedown workflows for unauthorized media reuse.
 
-## Features
+## 🚀 Live Production Environment
 
-- **Full User Authentication:** Secure email/password signup, email verification, and password reset workflows.
-- **Tenant Isolation:** Users can securely upload and manage their own assets; all data (assets, cases, detections, notifications, and audits) is strictly owner-scoped.
-- **Automated Detection & Notifications:** AI-driven similarity matching (CLIP + FAISS + imagehash). When a violation is detected, the asset owner is immediately notified via in-app alerts and transaction emails.
-- **Human-in-the-Loop Review:** Dedicated case management interface allowing users to review Gemini rationale, edit AI drafts, mark reviewed, and approve or reject potential violations.
-- **Automatic Vertex AI Gemini Workflow:** Every new case requests a Gemini rationale plus takedown draft using full asset, evidence, confidence, risk, and discovery context, with deterministic fallback only when Gemini is unavailable.
-- **Auditable Draft Revisioning:** Original AI drafts, user-edited revisions, draft review actions, exports, and Gemini call metadata are all stored and exposed for audit UI and API consumption.
-- **Reference-Driven UI:** The authenticated dashboard, registry, and case detail routes now use bordered panels, soft AI callouts, accent tiles, and sticky action bars based on the supplied screenshot references.
+The PlayshieldAI V2 platform is live and fully operational on Google Cloud.
 
-## Architecture
+- **Frontend / Application:** [https://playshieldai.dev](https://playshieldai.dev)
+- **Account Registration:** [https://playshieldai.dev/register](https://playshieldai.dev/register)
+- **Status:** Stable Release / Production-Ready.
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                        Frontend (Next.js)                      │
-│   Signup │ Login │ Dashboard │ Assets │ Cases │ Settings         │
-└──────────────────────┬───────────────────────────────────────┘
-                       │ REST API
-┌──────────────────────┴───────────────────────────────────────┐
-│                    Backend (FastAPI)                            │
-│  Auth │ Assets │ Detection │ Cases │ Gemini │ Audit │ Notifications │
-├───────────┬──────────┬──────────┬────────────────────────────┤
-│ PostgreSQL│  Redis   │  FAISS   │  Google Cloud Storage       │
-└───────────┴──────────┴──────────┴────────────────────────────┘
-                       │ Celery Tasks
-┌──────────────────────┴───────────────────────────────────────┐
-│                    Worker (Celery)                              │
-│  Playwright Crawler │ CV Pipeline │ FAISS Index Builder         │
-└──────────────────────────────────────────────────────────────┘
-```
+---
 
-## Quick Start (Local)
+## 🏗️ Technical Architecture
+
+PlayshieldAI is built on a resilient, serverless architecture designed for high availability and secure data isolation.
+
+- **Frontend:** Next.js application containerized and hosted on **Google Cloud Run**.
+- **Backend:** FastAPI (Python) services containerized and hosted on **Google Cloud Run**.
+- **Database:** **Google Cloud SQL (PostgreSQL)**, utilizing secure Unix Sockets for internal service communication.
+- **AI Engine:** **Google Vertex AI (Gemini 2.0 Flash)** for stateful case rationale generation, automated risk scoring, and metadata-rich takedown drafting.
+- **Task Orchestration:** Celery with Redis for asynchronous detection pipelines and scheduled registry scans.
+- **Storage:** Google Cloud Storage for media asset fingerprinting and secure artifact archival.
+
+---
+
+## 💻 Local Development
+
+For engineers contributing to the core platform or running private instances.
 
 ### Prerequisites
 - Docker & Docker Compose
-- Node.js 20+ (for frontend dev)
-- Python 3.11+ (for backend dev)
+- Python 3.11+
+- Node.js 20+
 
-### 1. Clone and Configure
+### 1. Environment Setup
 ```bash
 cp .env.example .env
-# Edit .env with your values (defaults work for local dev)
+# Configure local secrets (PostgreSQL, Redis, Gemini API Keys)
 ```
 
-### 2. Start Everything
+### 2. Launch Services
 ```bash
-make dev
+make dev      # Starts all containers
+make migrate  # Applies latest schema changes
+make seed     # Optional: Seeds development data
 ```
 
-### 3. Run Migrations & Seed
-```bash
-make migrate
-make seed
-```
-
-## Access the App
-
-### Live Production Environment
-- **Frontend:** [https://playshieldai.dev](https://playshieldai.dev)
-- **Architecture:** Hosted on **Google Cloud Run** with **Cloud SQL (PostgreSQL)** and **Vertex AI (Gemini 2.0 Flash)** integration.
-- **Production Status:** V2 Live / Stable.
-
-### Local Development Environment
+### 3. Local Access
 - **Frontend:** `http://localhost:3000`
 - **Backend API:** `http://localhost:8000`
-- **API Docs:** `http://localhost:8000/docs`
+- **Interactive Docs:** `http://localhost:8000/docs`
 
-## Create an Account
+---
 
-To get started, navigate to [https://playshieldai.dev/register](https://playshieldai.dev/register) to create a new user account.
+## 🚢 Deployment & CI/CD
 
-> [!NOTE]
-> If you are running the app **locally**, navigate to `http://localhost:3000/register`. In local development without SMTP configured, you can verify your email by clicking the activation link printed in your backend console logs.
+Updates to the V2 platform are managed via Google Cloud SDK.
 
-
-## API Endpoints
-
-- `POST /auth/register` - Create user
-- `POST /auth/verify-email` - Verify email token
-- `POST /auth/login` - Get JWT tokens
-- `POST /assets` - Upload user-scoped asset
-- `GET /cases` - List user-scoped cases
-- `GET /cases/{id}/gemini-summary` - Stored Gemini rationale, draft history, and recent AI call state
-- `POST /cases/{id}/generate-gemini` - Refresh Gemini rationale + draft
-- `PATCH /cases/{id}/drafts/{draftId}` - Save an edited takedown draft revision
-- `POST /cases/{id}/drafts/{draftId}/review` - Mark a draft reviewed
-- `POST /cases/{id}/generate-draft` - Backwards-compatible latest-draft generation endpoint
-- `GET /notifications` - In-app alerts
-
-## Gemini Workflow
-
-1. A high-confidence detection creates a case.
-2. The backend sends the full case context to Vertex AI Gemini.
-3. The case stores:
-   - Gemini rationale for the “Why This Match?” panel
-   - Current Gemini/fallback state and user-facing incomplete/error messaging
-   - Versioned takedown draft revisions
-   - Gemini call metadata for auditability
-4. Users can edit, review, copy, and export drafts without blocking core case actions.
-
-## Design References
-
-The implemented UI tracks the screenshot references copied into `docs/references/`.
-
-![Dashboard reference](docs/references/ai-dashboard-reference.png)
-![Registry reference](docs/references/ai-registry-reference.png)
-![Report reference](docs/references/ai-report-reference.png)
-
-## Verification
-
-- `python3 -m compileall backend/app backend/tests`
-- `npm run lint`
-- `npx next build --webpack`
-
-## GCP Deployment
-
-### Manual Deploy
+### Database Migrations
+To sync the production schema after backend updates:
 ```bash
-export GCP_PROJECT_ID=your-project-id
-./infra/deploy-full.sh
+gcloud run jobs execute playshield-migrate --region us-central1
 ```
 
-### CI/CD (GitHub Actions)
-Push to `main` branch triggers automatic deployment via `.github/workflows/deploy.yml`.
+### Manual Service Deployment
+```bash
+# Deploy Backend
+gcloud run deploy playshield-backend \
+  --source ./backend \
+  --region us-central1 \
+  --add-cloudsql-instances <YOUR_INSTANCE_CONNECTION_NAME>
 
-Required GitHub Secrets:
-- `GCP_PROJECT_ID`
-- `WIF_PROVIDER` (Workload Identity Federation)
-- `WIF_SERVICE_ACCOUNT`
+# Deploy Frontend
+gcloud run deploy playshield-frontend \
+  --source ./frontend \
+  --region us-central1
+```
 
-## License
-Proprietary — All rights reserved.
+### Automated CI/CD
+Pushing to the `main` branch triggers an automated GitHub Action workflow that builds and deploys all service containers to their respective Google Cloud Run environments.
+
+---
+
+## 🛡️ Security & Compliance
+
+PlayshieldAI implements strict **Tenant Isolation** and **Role-Based Access Control (RBAC)**.
+
+- **Audit Logs:** Every action (AI generation, draft edit, approval) is recorded in an immutable audit trail.
+- **Data Privacy:** All assets and detections are strictly scoped to the authenticated tenant.
+- **Compliance:** Built with defensibility in mind, preserving original AI rationales alongside user-edited takedown letters.
+
+For detailed security policies, refer to [docs/SECURITY.md](./docs/SECURITY.md).
+
+---
+
+## 📄 License
+
+Proprietary — All rights reserved. Intellectual property of PlayshieldAI.

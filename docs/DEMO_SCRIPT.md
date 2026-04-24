@@ -1,76 +1,56 @@
-# IP Guardian — Demo Script
+# PlayshieldAI — V2 Production Demo Script
 
 ## Prerequisites
-- Docker Compose running (`make dev`)
-- Database migrated and seeded (`make migrate && make seed`)
-- Browser open to http://localhost:3000
+- High-speed internet access.
+- Authenticated account on [https://playshieldai.dev](https://playshieldai.dev).
+- (Optional) Local instance running via `make dev` for architecture walkthroughs.
 
 ---
 
-## Demo Flow (5 minutes)
+## 🎬 The Demo Flow (6 Minutes)
 
-### 1. Login (30s)
-1. Navigate to http://localhost:3000
-2. Login as **admin@ipguardian.dev** / **admin123**
-3. Point out: JWT auth, role-based access
+### 1. The Entry Point (30s)
+1. Navigate to [https://playshieldai.dev](https://playshieldai.dev).
+2. Login with your tenant credentials.
+3. **Talking Point**: "PlayshieldAI is an enterprise IP risk platform. We are now looking at a live production instance hosted on Google Cloud Run."
 
-### 2. Dashboard Overview (45s)
-1. Show stat cards: Protected Assets, Total Scans, Open Cases, High Risk
-2. Point out the Detection Trend chart (Recharts area chart)
-3. Show Confidence Distribution bar chart
-4. Explain the scoring formula: `confidence = 0.4×hash + 0.4×embed + 0.2×risk`
+### 2. The Control Room: Dashboard (60s)
+1. Point out the **Brutalist Editorial UI**: Bordered panels, high-density charts, and accent tiles.
+2. Highlight **Global AI Insights**: Show the Gemini-generated summary cards that triage risk across the entire registry.
+3. **Talking Point**: "Our dashboard doesn't just show numbers; it uses Vertex AI Gemini to summarize why specific sources are surfacing as high-risk."
 
-### 3. Protected Assets (45s)
-1. Navigate to **Protected Assets**
-2. Show the 3 seeded assets
-3. Click **Upload Asset** — demonstrate the upload modal
-4. Explain: On upload, system extracts pHash + CLIP embeddings, rebuilds FAISS index
+### 3. Protection Registry: Asset Management (60s)
+1. Navigate to **Registry**.
+2. Click into an asset card.
+3. Show the **Gemini rationale** explaining *why* that specific asset is being monitored (e.g., high-value kinetic media).
+4. **Talking Point**: "Every asset in our registry is fingerprinted using CLIP and imagehash, then analyzed by Gemini to establish its protection rationale."
 
-### 4. Cases — The Core Flow (90s)
-1. Navigate to **Cases**
-2. Show the filterable case list with score badges and status pills
-3. Click into a high-confidence case
-4. Walk through the **Score Breakdown**:
-   - Hash Similarity (perceptual hash comparison)
-   - Embedding Similarity (CLIP/FAISS cosine distance)
-   - Risk Score (unauthorized source detection)
-5. Show the **Evidence** panel with raw JSON
+### 4. The Core Flow: Case Triage (120s)
+1. Navigate to **Cases**.
+2. Select a high-confidence case.
+3. **Why This Match?**: Point to the `GeminiCallout` component. Explain that Gemini 2.0 analyzed the pixel-level similarity alongside source risk.
+4. **Evidence Panel**: Briefly show the raw signal data (Hash, Embed, Risk scores).
+5. **Talking Point**: "This is the human-in-the-loop review. The AI provide the rationale, but the analyst makes the final decision."
 
-### 5. AI-Powered Takedown Draft (60s)
-1. On the case detail page, click **"Generate Draft (Gemini)"**
-2. Wait for Vertex AI Gemini to generate the draft
-3. Show the generated takedown notice in the modal
-4. Point out the **legal disclaimer**: "AI-generated draft; requires human legal review"
-5. Click **Export** to download as .txt or .md
-6. If Gemini is not configured, show the deterministic fallback template
+### 5. Auditable Takedown Drafting (60s)
+1. Show the **Editable Draft** panel.
+2. Make a small edit to the draft letter.
+3. Click **Save Edits** — point out that this creates a new auditable revision.
+4. Click **Mark as Reviewed** — show the stamp badge appearing.
+5. **Talking Point**: "We preserve the original AI output while allowing analysts to refine the letter. Every revision is logged for legal compliance."
 
-### 6. Case Decision (30s)
-1. Click **"Approve & Action"** on a case
-2. Show status change from New → Actioned
-3. Explain: Every action creates an immutable audit log entry
-
-### 7. Settings — Admin Panel (30s)
-1. Navigate to **Settings**
-2. Show **Run Crawl** button (triggers Playwright crawler via Celery)
-3. Show **Test Alerts** (Slack webhook + email)
-4. Show system info
+### 6. The Decision & Audit Trail (30s)
+1. Click **Approve**.
+2. Scroll to the **Audit Trail** at the bottom of the page.
+3. Show the event logs: "Draft Edited", "Draft Reviewed", "Case Approved".
+4. **Talking Point**: "Our audit trail is immutable. In a legal dispute, we can prove exactly how the AI reasoned and how the human analyst refined the action."
 
 ---
 
-## Key Technical Highlights
+## 🏗️ Technical Highlights for Judges
 
-1. **CV/ML Pipeline**: CLIP embeddings + FAISS for semantic similarity, imagehash for perceptual matching
-2. **Vertex AI Gemini**: Real AI-generated takedown drafts with structured case context
-3. **Async Architecture**: Celery + Redis for background crawling and scanning
-4. **Immutable Audit Trail**: Every case action logged with before/after state
-5. **Cloud-Ready**: Docker Compose locally, Cloud Run + Cloud SQL in production
-6. **CI/CD**: GitHub Actions pipeline for automated testing and deployment
-
----
-
-## Talking Points for Judges
-- End-to-end automated pipeline: ingest → fingerprint → crawl → detect → case → draft
-- Real Google AI integration (Vertex AI Gemini)
-- Production-ready architecture (not a toy)
-- Human-in-the-loop design (AI assists, humans decide)
-- Full audit trail for legal compliance
+1. **Production Infrastructure**: Google Cloud Run + Cloud SQL + Secret Manager.
+2. **Stateful AI Integration**: Vertex AI Gemini 2.0 Flash with deterministic fallback safety.
+3. **Hybrid CV Pipeline**: FAISS-powered CLIP embeddings for semantic search + perceptual hashing for exact match.
+4. **Editorial UI**: Responsive Tailwind system designed for complex, multi-panel data analysis.
+5. **Enterprise Compliance**: Full tenant isolation and immutable action logging.

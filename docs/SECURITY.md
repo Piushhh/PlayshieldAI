@@ -1,70 +1,48 @@
-# IP Guardian — Security Documentation
+# PlayshieldAI — Security & Compliance Architecture
 
-## Authentication
+## Identity & Access Management (IAM)
 
-### JWT Tokens
-- **Access Token**: Short-lived (30 min default), used for API requests
-- **Refresh Token**: Long-lived (7 days default), used to obtain new access tokens
-- Tokens are signed with HS256 using a configurable secret key
-- Token payload includes: user ID, role, type, expiration
+### Authentication
+- **JWT Implementation**: Stateless authentication using secure JSON Web Tokens.
+  - **Access Tokens**: Short-lived (30 minutes) for active request authorization.
+  - **Refresh Tokens**: Long-lived (7 days) for session persistence.
+- **Credential Safety**: All passwords are encrypted using **bcrypt** (passlib implementation) with unique salts. No plaintext credentials are ever stored or logged.
+- **Workflows**: Production-grade flows for user registration, email verification, and secure password recovery are fully implemented.
 
-### Password Security
-- Passwords hashed using bcrypt via passlib
-- No plaintext passwords stored
-- Minimum password requirements should be enforced in production
+### Role-Based Access Control (RBAC)
+PlayshieldAI enforces granular permissions based on organizational roles:
+- **Admin**: Full administrative control over registry scans, global settings, and user management.
+- **Analyst/Reviewer**: Capability to triage cases, review Gemini rationales, and approve/reject takedown drafts.
+- **Tenant Isolation**: All data objects (Assets, Cases, Detections, Notifications) are strictly scoped to the tenant ID of the authenticated user.
 
-## Authorization (RBAC)
+---
 
-### Roles
-| Role | Permissions |
-|------|------------|
-| Admin | All operations, including crawl, scan, settings |
-| Reviewer | View/action cases, generate drafts, view assets |
+## Data Protection & Privacy
 
-### Protected Endpoints
-- Crawl/scan operations: Admin only
-- Case viewing/actioning: Both roles
-- Settings page: Admin only (frontend-enforced)
+### Infrastructure Security
+- **Cloud SQL Connectivity**: Internal backend services communicate with the PostgreSQL database via **Unix Sockets** or secure IAM-proxy connections, ensuring no database ports are exposed to the public internet.
+- **Secret Management**: Production secrets (JWT keys, API credentials) are managed via **Google Cloud Secret Manager** or encrypted environment variables in Cloud Run.
+- **Media Archival**: User-uploaded assets are stored in private **Google Cloud Storage** buckets with signed URL access for internal processing only.
 
-## Data Protection
+### Immutable Audit Trail
+To ensure legal defensibility for IP takedowns, the platform maintains an append-only audit log:
+- **Event Capture**: Every AI generation attempt, draft revision, mark-as-reviewed, and final decision is recorded.
+- **Metadata**: Logs include the actor, timestamp, entity delta (before/after states), and Gemini model/provider metadata.
 
-### Sensitive Data
-- JWT secret key: Must be ≥32 chars, stored in env vars
-- Database credentials: Never logged, stored in env
-- GCP service account: JSON key file, not committed to VCS
-- Slack webhooks, SMTP passwords: Environment variables only
+---
 
-### Audit Logging
-- Every case action creates an immutable audit log entry
-- Logs include: actor, entity, action, before/after state, timestamp
-- Audit logs are append-only — no delete/update operations
+## API & Network Security
 
-## API Security
+### Transport Security
+- **TLS 1.3**: All traffic to `*.playshieldai.dev` is encrypted in transit via TLS 1.3.
+- **CORS Policy**: Configured with a strict allow-list limited to the production frontend domain.
 
-### CORS
-- Configured to allow specific origins (frontend URL)
-- Credentials enabled for cookie/auth support
+### Rate Limiting & Safety
+- **Detection Crawler**: Our discovery engine respects `robots.txt` and implements intelligent back-off strategies.
+- **AI Safety**: Gemini rationale generation includes safety filters to ensure compliance with Google Vertex AI responsible AI guidelines.
 
-### Rate Limiting
-- Crawler respects robots.txt
-- Configurable rate limits and concurrency
-- Recommended: Add API rate limiting in production (e.g., slowapi)
+---
 
-## Deployment Security
+## Compliance & Auditing
 
-### Environment Variables
-- Never commit `.env` files (gitignored)
-- Use GCP Secret Manager in production
-- Rotate JWT secret keys periodically
-
-### Container Security
-- Non-root user recommended in production Dockerfiles
-- Minimal base images (python:3.11-slim, node:20-alpine)
-- Regular dependency updates
-
-## Known Limitations (MVP)
-- No email verification
-- No password reset flow
-- No MFA/2FA
-- No API rate limiting (add slowapi for production)
-- CORS is permissive for development
+PlayshieldAI is designed to provide a verifiable chain of custody for intellectual property enforcement. By preserving original AI rationales alongside human-in-the-loop edits, we provide the transparency required for legal compliance in IP management.
