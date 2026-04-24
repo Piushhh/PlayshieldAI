@@ -1,0 +1,16 @@
+PlayShield AI Deployment Info
+===========================
+Date: 2026-04-23 10:43:53 UTC
+Project: playshield-ai
+Region: us-central1
+
+FRONTEND_URL=https://playshield-frontend-nfzz4olvxq-uc.a.run.app
+BACKEND_URL=https://playshield-backend-nfzz4olvxq-uc.a.run.app
+API_DOCS=https://playshield-backend-nfzz4olvxq-uc.a.run.app/docs
+
+Cloud SQL: playshield-ai:us-central1:playshield-sql
+GCS Bucket: gs://playshield-ai-playshield-media
+Redis: redis://10.135.108.147:6379/0
+
+DB_PASSWORD=XkEcxGbaDFSSfGcHoenmG0Lu
+JWT_SECRET=EdJt4mj1SqMPc2oVMAYNiqVuIKYSDLGNHEf8GxDI9w3T0TN0
