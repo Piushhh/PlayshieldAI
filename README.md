@@ -57,13 +57,25 @@ make migrate
 make seed
 ```
 
-### 4. Access the App
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
+## Access the App
 
-### 5. Create an Account
-Navigate to `http://localhost:3000/register` to create a new user account. Verify the email link (printed in the backend console if SMTP is unconfigured) to activate your account.
+### Live Production Environment
+- **Frontend:** [https://playshieldai.dev](https://playshieldai.dev)
+- **Architecture:** Hosted on **Google Cloud Run** with **Cloud SQL (PostgreSQL)** and **Vertex AI (Gemini 2.0 Flash)** integration.
+- **Production Status:** V2 Live / Stable.
+
+### Local Development Environment
+- **Frontend:** `http://localhost:3000`
+- **Backend API:** `http://localhost:8000`
+- **API Docs:** `http://localhost:8000/docs`
+
+## Create an Account
+
+To get started, navigate to [https://playshieldai.dev/register](https://playshieldai.dev/register) to create a new user account.
+
+> [!NOTE]
+> If you are running the app **locally**, navigate to `http://localhost:3000/register`. In local development without SMTP configured, you can verify your email by clicking the activation link printed in your backend console logs.
+
 
 ## API Endpoints
 
