@@ -160,38 +160,40 @@ export default function CasesPage() {
                       <div>
                         <p className="panel-kicker">AI state</p>
                         <p className="mt-2 text-base capitalize">
-                          {caseItem.gemini_status.replace(/_/g, " ")}
+                          {caseItem.gemini_status?.replace(/_/g, " ") || "Pending"}
                         </p>
                       </div>
+
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-px border border-[var(--color-line)] bg-[var(--color-line)] self-start">
+                  <div className="grid grid-cols-1 gap-px border border-[var(--color-line)] bg-[var(--color-line)] sm:grid-cols-2 xl:grid-cols-2 self-start">
                     <div className="metric-tile bg-[var(--color-success-bg)]">
                       <p className="panel-kicker">Hash</p>
-                      <p className="metric-value text-[2rem]">
+                      <p className="metric-value truncate">
                         {Math.round((caseItem.detection?.hash_score || 0) * 100)}
                       </p>
                     </div>
                     <div className="metric-tile bg-[var(--color-info-bg)]">
                       <p className="panel-kicker">Embed</p>
-                      <p className="metric-value text-[2rem]">
+                      <p className="metric-value truncate">
                         {Math.round((caseItem.detection?.embed_score || 0) * 100)}
                       </p>
                     </div>
                     <div className="metric-tile bg-[var(--color-warning-bg)]">
                       <p className="panel-kicker">Risk</p>
-                      <p className="metric-value text-[2rem]">
+                      <p className="metric-value truncate">
                         {Math.round((caseItem.detection?.risk_score || 0) * 100)}
                       </p>
                     </div>
-                    <div className="metric-tile bg-[rgba(255,255,255,0.72)]">
-                      <p className="panel-kicker">Open</p>
-                      <Link href={`/cases/${caseItem.id}`} className="btn-primary mt-5 w-full">
-                        Open case
+                    <div className="metric-tile bg-[rgba(255,255,255,0.72)] flex flex-col justify-center">
+                      <p className="panel-kicker">Action</p>
+                      <Link href={`/cases/${caseItem.id}`} className="btn-primary mt-4 w-full px-2 text-xs">
+                        Open
                       </Link>
                     </div>
                   </div>
+
                 </div>
               </article>
             ))}

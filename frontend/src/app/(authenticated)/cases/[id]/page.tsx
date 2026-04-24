@@ -35,9 +35,10 @@ import {
   StickyActionBar,
 } from "@/components/ui";
 
-function formatAction(action: string) {
-  return action.replace(/_/g, " ");
+function formatAction(action: string | null | undefined) {
+  return (action || "action").replace(/_/g, " ");
 }
+
 
 function latestDraft(caseData: CaseRecord | null, summary: GeminiSummaryRecord | null) {
   return (

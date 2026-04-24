@@ -84,7 +84,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-px border border-[var(--color-line)] bg-[var(--color-line)]">
+          <div className="grid grid-cols-1 gap-px border border-[var(--color-line)] bg-[var(--color-line)] sm:grid-cols-2">
             <StatCard
               title="Protected assets"
               value={stats.total_assets}
@@ -109,7 +109,7 @@ export default function DashboardPage() {
             <StatCard
               title="AI ready"
               value={
-                stats.gemini_overview.find((item) => item.title === "Gemini ready")
+                stats.gemini_overview?.find((item) => item.title === "Gemini ready")
                   ?.value || 0
               }
               icon={<Bot size={18} />}
@@ -117,52 +117,66 @@ export default function DashboardPage() {
               tone="info"
             />
           </div>
+
         </div>
       </section>
-
+|
       <section className="animate-in" style={{ animationDelay: "0.05s" }}>
         <SectionDivider label="Global AI insights" />
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-4">
-          {stats.gemini_overview.map((item) => (
-            <InsightCard
-              key={item.title}
-              title={item.title}
-              value={item.value}
-              trend={item.trend}
-              subtitle={item.subtitle}
-              tone={
-                item.tone === "success" ||
-                item.tone === "warning" ||
-                item.tone === "info"
-                  ? item.tone
-                  : "neutral"
-              }
-            />
-          ))}
+          {(stats.gemini_overview ?? []).length > 0 ? (
+            stats.gemini_overview?.map((item) => (
+              <InsightCard
+                key={item.title}
+                title={item.title}
+                value={item.value}
+                trend={item.trend}
+                subtitle={item.subtitle}
+                tone={
+                  item.tone === "success" ||
+                  item.tone === "warning" ||
+                  item.tone === "info"
+                    ? item.tone
+                    : "neutral"
+                }
+              />
+            ))
+          ) : (
+            <div className="panel-card col-span-full py-8 text-center">
+              <p className="panel-subtle italic">AI insights summary pending for active cases</p>
+            </div>
+          )}
         </div>
       </section>
 
       <section className="animate-in" style={{ animationDelay: "0.1s" }}>
         <SectionDivider label="Top flagged sources" />
         <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-4 md:grid-cols-2">
-          {stats.top_flagged_sources.map((item) => (
-            <InsightCard
-              key={item.title}
-              title={item.title}
-              value={item.value}
-              trend={item.trend}
-              subtitle={item.subtitle}
-              tone={
-                item.tone === "success" ||
-                item.tone === "warning" ||
-                item.tone === "risk"
-                  ? item.tone
-                  : "neutral"
-              }
-            />
-          ))}
+          {(stats.top_flagged_sources ?? []).length > 0 ? (
+            stats.top_flagged_sources?.map((item) => (
+              <InsightCard
+                key={item.title}
+                title={item.title}
+                value={item.value}
+                trend={item.trend}
+                subtitle={item.subtitle}
+                tone={
+                  item.tone === "success" ||
+                  item.tone === "warning" ||
+                  item.tone === "risk"
+                    ? item.tone
+                    : "neutral"
+                }
+              />
+            ))
+          ) : (
+            <div className="panel-card col-span-full py-8 text-center">
+              <p className="panel-subtle italic">Source distribution metadata unavailable</p>
+            </div>
+          )}
         </div>
       </section>
+
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.8fr)]">
         <Panel
@@ -171,7 +185,7 @@ export default function DashboardPage() {
           className="animate-in p-6"
         >
           <ResponsiveContainer width="100%" height={340}>
-            <AreaChart data={stats.trend_data}>
+            <AreaChart data={stats.trend_data ?? []}>
               <defs>
                 <linearGradient id="detectionsFill" x1="0" x2="0" y1="0" y2="1">
                   <stop offset="0%" stopColor="#7cd5e9" stopOpacity={0.65} />

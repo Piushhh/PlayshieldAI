@@ -114,14 +114,14 @@ export interface CaseRecord {
   assigned_to?: string | null;
   created_at: string;
   updated_at: string;
-  gemini_status: string;
+  gemini_status?: string | null;
   gemini_rationale?: string | null;
   gemini_model?: string | null;
   gemini_provider?: string | null;
   gemini_error?: string | null;
   gemini_incomplete_reason?: string | null;
-  gemini_is_incomplete: boolean;
-  gemini_is_fallback: boolean;
+  gemini_is_incomplete?: boolean;
+  gemini_is_fallback?: boolean;
   gemini_last_attempted_at?: string | null;
   gemini_generated_at?: string | null;
   detection?: DetectionRecord | null;
@@ -145,14 +145,15 @@ export interface DashboardStatsRecord {
   high_confidence_count: number;
   medium_confidence_count: number;
   low_confidence_count: number;
-  trend_data: Array<{
+  trend_data?: Array<{
     date: string;
     detections: number;
     cases: number;
-  }>;
-  top_flagged_sources: DashboardInsightCard[];
-  gemini_overview: DashboardInsightCard[];
+  }> | null;
+  top_flagged_sources?: DashboardInsightCard[] | null;
+  gemini_overview?: DashboardInsightCard[] | null;
 }
+
 
 export interface AuditLogRecord {
   id: string;

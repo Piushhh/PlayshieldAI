@@ -105,15 +105,16 @@ export function StatCard({
 }) {
   return (
     <div className={clsx("metric-tile", toneClasses(tone))}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="panel-kicker">{title}</p>
-          <p className="metric-value">{value}</p>
-          {trend ? <p className="metric-trend">{trend}</p> : null}
+      <div className="flex items-start justify-between gap-4 min-w-0">
+        <div className="min-w-0 flex-1">
+          <p className="panel-kicker truncate">{title}</p>
+          <p className="metric-value truncate">{value}</p>
+          {trend ? <p className="metric-trend truncate">{trend}</p> : null}
         </div>
-        {icon ? <div className="metric-icon">{icon}</div> : null}
+        {icon ? <div className="metric-icon flex-shrink-0">{icon}</div> : null}
       </div>
     </div>
+
   );
 }
 

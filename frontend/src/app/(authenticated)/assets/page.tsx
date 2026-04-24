@@ -197,26 +197,26 @@ export default function AssetsPage() {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-px border border-[var(--color-line)] bg-[var(--color-line)]">
+                    <div className="grid grid-cols-1 gap-px border border-[var(--color-line)] bg-[var(--color-line)] sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
                       <div className="metric-tile bg-[var(--color-success-bg)]">
                         <p className="panel-kicker">Confidence</p>
-                        <div className="mt-4">
+                        <div className="mt-4 overflow-hidden truncate">
                           {typeof asset.latest_confidence === "number" ? (
                             <ScoreBadge score={asset.latest_confidence} />
                           ) : (
-                            <p className="metric-value text-[2.2rem]">--</p>
+                            <p className="metric-value">--</p>
                           )}
                         </div>
                       </div>
                       <div className="metric-tile bg-[var(--color-info-bg)]">
                         <p className="panel-kicker">Risk</p>
-                        <p className="metric-value text-[2rem]">
+                        <p className="metric-value truncate">
                           {asset.highest_risk_label || "Waiting"}
                         </p>
                       </div>
                       <div className="metric-tile bg-[rgba(255,255,255,0.72)]">
                         <p className="panel-kicker">Case state</p>
-                        <div className="mt-4">
+                        <div className="mt-4 overflow-hidden truncate">
                           {asset.latest_case_status ? (
                             <StatusPill status={asset.latest_case_status} />
                           ) : (
@@ -226,11 +226,12 @@ export default function AssetsPage() {
                       </div>
                       <div className="metric-tile bg-[var(--color-warning-bg)]">
                         <p className="panel-kicker">AI status</p>
-                        <p className="metric-value text-[2rem]">
+                        <p className="metric-value truncate">
                           {asset.gemini_status || "Pending"}
                         </p>
                       </div>
                     </div>
+
                   </div>
                 </article>
               );
