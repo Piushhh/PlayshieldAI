@@ -105,3 +105,25 @@ async def delete_asset(db: AsyncSession, asset_id: uuid.UUID, owner_id: uuid.UUI
     await db.delete(asset)
     await db.flush()
     return True
+
+
+async def analyze_asset(db: AsyncSession, asset: Asset) -> Asset:
+    """Analyze asset using Gemini and update its rationale/status."""
+    from app.services.gemini_service import analyze_asset_risk
+    
+    asset_data = {
+        "title": asset.title,
+        "license_type": asset.license_type,
+        "media_type": asset.media_type.value if asset.media_type else "image",
+        "allowed_use_notes": asset.allowed_use_notes,
+    }
+    
+    asset.gemini_status = "scanning"
+    await db.flush()
+    
+    result = await analyze_asset_risk(asset_data)
+    
+    asset.gemini_status = result.status
+    asset.gemini_rationale = result.rationale
+    await db.flush()
+    return asset

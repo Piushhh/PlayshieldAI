@@ -222,3 +222,15 @@ async def export_draft(
     return PlainTextResponse(content=latest.draft_text, media_type=ct, headers={
         "Content-Disposition": f"attachment; filename=takedown_draft_{case_id}.{format}"
     })
+
+
+@router.post("/seed-mock", response_model=CaseOut)
+async def create_mock_case(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Forcefully generate a high-detail Critical Risk mock case for UI testing."""
+    from app.services.case_service import seed_mock_case
+    case = await seed_mock_case(db, user.id)
+    # Re-fetch to hydrate relationships
+    return await get_case(db, case.id)

@@ -171,19 +171,19 @@ export default function CasesPage() {
                     <div className="metric-tile bg-[var(--color-success-bg)]">
                       <p className="panel-kicker">Hash</p>
                       <p className="metric-value truncate">
-                        {Math.round((caseItem.detection?.hash_score || 0) * 100)}
+                        {Math.round((caseItem.detection?.hash_score || 0) * 100)}%
                       </p>
                     </div>
                     <div className="metric-tile bg-[var(--color-info-bg)]">
                       <p className="panel-kicker">Embed</p>
                       <p className="metric-value truncate">
-                        {Math.round((caseItem.detection?.embed_score || 0) * 100)}
+                        {Math.round((caseItem.detection?.embed_score || 0) * 100)}%
                       </p>
                     </div>
                     <div className="metric-tile bg-[var(--color-warning-bg)]">
                       <p className="panel-kicker">Risk</p>
                       <p className="metric-value truncate">
-                        {Math.round((caseItem.detection?.risk_score || 0) * 100)}
+                        {Math.round((caseItem.detection?.risk_score || 0) * 100)}%
                       </p>
                     </div>
                     <div className="metric-tile bg-[rgba(255,255,255,0.72)] flex flex-col justify-center">
@@ -199,6 +199,26 @@ export default function CasesPage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section className="flex justify-center pb-8 animate-in" style={{ animationDelay: "0.15s" }}>
+         <button 
+          onClick={async () => {
+            setLoading(true);
+            try {
+              await api.post("/cases/seed-mock", {});
+              const refreshed = await api.getCases(statusFilter ? { status: statusFilter } : undefined);
+              setCases(refreshed);
+            } catch (err) {
+              console.error("Mock generation failed", err);
+            } finally {
+              setLoading(false);
+            }
+          }}
+          className="btn-secondary border-dashed text-xs opacity-60 hover:opacity-100"
+        >
+          [Dev Tool] Generate Mock Case
+        </button>
       </section>
     </div>
   );

@@ -55,6 +55,7 @@ class GeminiGenerationResult:
     status: str
     is_incomplete: bool
     is_fallback: bool
+    risk_level: str = "medium"
     error_message: str | None = None
     incomplete_reason: str | None = None
     raw_response: dict[str, Any] | None = None
@@ -73,6 +74,7 @@ async def generate_case_content(case_data: dict[str, Any]) -> GeminiGenerationRe
         return GeminiGenerationResult(
             rationale=rationale,
             draft_text=draft_text,
+            risk_level=payload.get("risk_level", "medium"),
             model=settings.GEMINI_MODEL,
             provider="vertex_ai",
             status="ready",
@@ -95,6 +97,57 @@ async def generate_case_content(case_data: dict[str, Any]) -> GeminiGenerationRe
                 "available while review and export actions remain fully usable."
             ),
             raw_response={"fallback": True, "error": str(exc)},
+            risk_level="medium",
+        )
+
+
+async def analyze_asset_risk(asset_data: dict[str, Any]) -> GeminiGenerationResult:
+    """Analyze an asset's protection profile and assign a risk level."""
+    try:
+        import vertexai
+        from vertexai.generative_models import GenerativeModel
+        vertexai.init(project=settings.GCP_PROJECT_ID, location=settings.VERTEX_AI_LOCATION)
+        model = GenerativeModel(settings.GEMINI_MODEL)
+
+        prompt = f"""You are an IP protection expert. Analyze the following asset metadata and establish a protection rationale.
+        
+        Asset Data:
+        {json.dumps(asset_data, indent=2, default=str)}
+        
+        Return a single JSON object with:
+        - rationale_title: short string
+        - rationale_summary: why this asset needs monitoring
+        - rationale_bullets: 3 key protection points
+        - risk_level: "low", "medium", "high", or "critical" (based on asset value and vulnerability)
+        
+        Do not include markdown fences.
+        """
+        response = await model.generate_content_async(prompt)
+        payload = _extract_json_object(getattr(response, "text", "") or "{{}}")
+        
+        rationale = _compose_rationale(payload)
+        return GeminiGenerationResult(
+            rationale=rationale,
+            draft_text="",
+            risk_level=payload.get("risk_level", "medium"),
+            model=settings.GEMINI_MODEL,
+            provider="vertex_ai",
+            status="ready",
+            is_incomplete=False,
+            is_fallback=False,
+            raw_response=payload,
+        )
+    except Exception as exc:
+        return GeminiGenerationResult(
+            rationale="Automated protection monitoring active.",
+            draft_text="",
+            risk_level="medium",
+            model="deterministic",
+            provider="fallback",
+            status="fallback",
+            is_incomplete=True,
+            is_fallback=True,
+            error_message=str(exc),
         )
 
 
@@ -119,6 +172,7 @@ Review the case context and return a single JSON object with exactly these keys:
 - rationale_summary: short paragraph
 - rationale_bullets: array of 3 to 5 concise bullet strings
 - confidence_label: short label such as "High risk" or "Moderate concern"
+- risk_level: one of ["low", "medium", "high", "critical"]
 - draft_letter: a complete takedown notice draft with concrete references to the asset, source, evidence, and next action
 - incomplete_reason: null unless the provided evidence is missing something material
 

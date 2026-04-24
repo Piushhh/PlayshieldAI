@@ -26,6 +26,7 @@ export default function AssetsPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
+  const [scanningAssetIds, setScanningAssetIds] = useState<Set<string>>(new Set());
 
   const loadAssets = () => {
     setLoading(true);
@@ -34,6 +35,22 @@ export default function AssetsPage() {
       .then(setAssets)
       .catch((currentError: Error) => setError(currentError.message))
       .finally(() => setLoading(false));
+  };
+
+  const handleRunScan = async (assetId: string) => {
+    setScanningAssetIds((prev) => new Set(prev).add(assetId));
+    try {
+      await api.post(`/assets/${assetId}/analyze`, {});
+      await loadAssets();
+    } catch (currentError) {
+      setError(currentError instanceof Error ? currentError.message : "AI Scan failed");
+    } finally {
+      setScanningAssetIds((prev) => {
+        const next = new Set(prev);
+        next.delete(assetId);
+        return next;
+      });
+    }
   };
 
   useEffect(() => {
@@ -167,34 +184,59 @@ export default function AssetsPage() {
                         <GeminiCallout
                           title="Why this asset is being watched"
                           description={
-                            <div className="space-y-2 whitespace-pre-line">
+                            <div className="space-y-2 whitespace-pre-line text-sm md:text-base leading-relaxed font-normal">
                               {expanded
                                 ? asset.gemini_rationale
-                                : `${asset.gemini_rationale.slice(0, 210)}${
-                                    asset.gemini_rationale.length > 210 ? "..." : ""
+                                : `${asset.gemini_rationale.slice(0, 180)}${
+                                    asset.gemini_rationale.length > 180 ? "..." : ""
                                   }`}
                             </div>
                           }
-                          className="shadow-none"
+                          className="shadow-none border-[var(--color-line)]"
                         />
                       ) : (
-                        <GeminiCallout
-                          title="Gemini preview pending"
-                          description="No Gemini rationale has been stored for this asset yet. Core registry details remain available while AI content catches up."
-                          badge="AI services delayed"
-                          className="shadow-none"
-                        />
+                        <div className="panel-card border-dashed bg-[var(--color-info-bg)] p-5">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="font-bold text-[var(--color-info-text)]">
+                                Gemini rationale missing
+                              </p>
+                              <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+                                No AI risk analysis has been performed for this asset yet.
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleRunScan(asset.id)}
+                              disabled={scanningAssetIds.has(asset.id)}
+                              className="btn-primary whitespace-nowrap"
+                            >
+                              {scanningAssetIds.has(asset.id) ? "Scanning..." : "Run AI Risk Scan"}
+                            </button>
+                          </div>
+                        </div>
                       )}
 
-                      <button
-                        onClick={() =>
-                          setExpandedAssetId(expanded ? null : asset.id)
-                        }
-                        className="btn-secondary"
-                      >
-                        {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                        {expanded ? "Collapse rationale" : "Expand rationale"}
-                      </button>
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() =>
+                            setExpandedAssetId(expanded ? null : asset.id)
+                          }
+                          className="btn-secondary"
+                        >
+                          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          {expanded ? "Collapse rationale" : "Expand rationale"}
+                        </button>
+                        
+                        {asset.gemini_rationale && (
+                           <button
+                            onClick={() => handleRunScan(asset.id)}
+                            disabled={scanningAssetIds.has(asset.id)}
+                            className="text-xs font-bold uppercase tracking-wider text-[var(--color-ink-soft)] hover:text-[var(--color-ink)] disabled:opacity-50"
+                          >
+                            {scanningAssetIds.has(asset.id) ? "Refreshing..." : "Re-run AI Scan"}
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 gap-px border border-[var(--color-line)] bg-[var(--color-line)] sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">

@@ -92,7 +92,10 @@ class Asset(Base):
     media_gcs_uri = Column(String(1000), nullable=True)
     media_local_path = Column(String(1000), nullable=True)
     media_type = Column(Enum(MediaType, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    gemini_status = Column(String(50), nullable=False, default="pending")
+    gemini_rationale = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 
     owner = relationship("User", back_populates="assets")
     fingerprints = relationship("Fingerprint", back_populates="asset", cascade="all, delete-orphan")

@@ -262,6 +262,12 @@ async def generate_case_gemini_content(
     case.gemini_is_fallback = result.is_fallback
     case.gemini_generated_at = generated_at
 
+    # Auto-escalation logic: Update case priority based on Gemini risk level
+    if result.risk_level.lower() == "critical":
+        case.priority = "critical"
+    elif result.risk_level.lower() == "high":
+        case.priority = "high"
+
     new_draft = await save_draft_revision(
         db,
         case_id=case.id,
@@ -390,3 +396,73 @@ async def count_open_cases(db: AsyncSession, owner_id: uuid.UUID | None = None) 
         q = q.where(Case.owner_id == owner_id)
     r = await db.execute(q)
     return r.scalar() or 0
+
+
+async def seed_mock_case(db: AsyncSession, owner_id: uuid.UUID) -> Case:
+    """Forcefully generate a high-detail Critical Risk mock case for UI testing."""
+    # Find or create a dummy asset
+    from app.services.asset_service import list_assets, create_asset
+    assets = await list_assets(db, owner_id=owner_id)
+    if assets:
+        asset = assets[0]
+    else:
+        # Create a mock file
+        from fastapi import UploadFile
+        import io
+        mock_file = UploadFile(filename="mock_asset.png", file=io.BytesIO(b"mock"))
+        asset = await create_asset(db, owner_id, "Enterprise Media Asset X-1", "all_rights_reserved", "Private internal distribution only.", [], "image", mock_file)
+
+    # Create a discovery
+    from app.models import Discovery, Detection
+    discovery = Discovery(
+        source_url="https://leaked-content-hub.io/premium/asset-x1",
+        platform="Unauthorized Torrent Hub",
+        meta_json={"ip": "192.168.1.1", "uploader": "pirate_master_99"}
+    )
+    db.add(discovery)
+    await db.flush()
+
+    # Create a detection
+    detection = Detection(
+        discovery_id=discovery.id,
+        asset_id=asset.id,
+        hash_score=0.98,
+        embed_score=0.95,
+        risk_score=1.0,
+        confidence=0.97,
+        evidence_json={
+            "hash_match": "exact",
+            "metadata_overlap": ["title", "dimensions"],
+            "risk_factors": ["high_traffic_domain", "no_license_detected"]
+        }
+    )
+    db.add(detection)
+    await db.flush()
+
+    # Create the case
+    case = Case(
+        detection_id=detection.id,
+        owner_id=owner_id,
+        status="new",
+        priority="critical",
+        gemini_status="ready",
+        gemini_rationale="🚨 CRITICAL RISK DETECTED: This asset ('Enterprise Media Asset X-1') has been found on a high-traffic piracy domain with 98% hash similarity. The uploader identity 'pirate_master_99' is a known repeat infringer.\n\n- Exact perceptual hash match found (0.98).\n- Semantic similarity confirms unauthorized use of core brand identifiers.\n- Source domain is on the global watchlist for IP theft.",
+        gemini_model=settings.GEMINI_MODEL,
+        gemini_generated_at=datetime.now(timezone.utc)
+    )
+    db.add(case)
+    await db.flush()
+
+    # Add a draft
+    draft_text = f"TAKEDOWN NOTICE — CASE {case.id}\n\nWe have identified a critical violation of our protected asset 'Enterprise Media Asset X-1' at https://leaked-content-hub.io/premium/asset-x1. Your domain is hosting unauthorized copies of proprietary media. Immediate removal is required."
+    draft = TakedownDraft(
+        case_id=case.id,
+        draft_text=draft_text,
+        model=settings.GEMINI_MODEL,
+        draft_kind="gemini"
+    )
+    db.add(draft)
+    await db.flush()
+    await db.commit()
+    
+    return case

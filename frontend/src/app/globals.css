@@ -152,23 +152,25 @@ textarea {
 
 .metric-tile {
   border: 1px solid var(--color-line);
-  padding: 1rem;
+  padding: 1.25rem 1rem;
   min-height: 140px;
   box-shadow: var(--shadow-soft);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .metric-value {
   margin-top: auto;
-  font-size: clamp(1.4rem, 1.2rem + 1.2vw, 2.8rem);
+  font-size: clamp(1.2rem, 1rem + 1.2vw, 2.75rem);
   font-weight: 700;
   letter-spacing: -0.06em;
   line-height: 1;
-  word-break: break-all;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 

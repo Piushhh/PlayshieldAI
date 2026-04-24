@@ -82,8 +82,8 @@ async def get_assets(
         asset.latest_case_id = latest_case.id if latest_case else None
         asset.latest_case_status = latest_case.status.value if latest_case else None
         asset.latest_confidence = latest_detection.confidence if latest_detection else None
-        asset.gemini_status = latest_case.gemini_status if latest_case else None
-        asset.gemini_rationale = latest_case.gemini_rationale if latest_case else None
+        asset.gemini_status = asset.gemini_status or (latest_case.gemini_status if latest_case else None)
+        asset.gemini_rationale = asset.gemini_rationale or (latest_case.gemini_rationale if latest_case else None)
         asset.highest_risk_label = _risk_label(asset.latest_confidence)
 
     return assets
@@ -101,3 +101,28 @@ async def remove_asset(
         raise HTTPException(status_code=404, detail="Asset not found or not owned by you")
     await log_action(db, user.id, "asset", uuid.UUID(asset_id), "deleted")
     return {"message": "Asset deleted"}
+
+
+@router.post("/{asset_id}/analyze", response_model=AssetOut)
+async def trigger_asset_analysis(
+    asset_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Trigger an AI risk scan for a specific asset."""
+    from app.services.asset_service import get_asset, analyze_asset
+    
+    asset = await get_asset(db, uuid.UUID(asset_id))
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    
+    if asset.owner_id != user.id and user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    await analyze_asset(db, asset)
+    await db.commit()
+    
+    # Audit log
+    await log_action(db, user.id, "asset", asset.id, "ai_scan_triggered")
+    
+    return asset
