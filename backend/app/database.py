@@ -2,8 +2,8 @@
 
 import os
 from google.cloud.sql.connector import Connector
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import get_settings
 
@@ -15,9 +15,16 @@ DB_PASS = os.getenv("DB_PASS")
 DB_NAME = os.getenv("DB_NAME", "playshield-db")
 INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME", "playshield-ai:us-central1:playshield-db")
 
+# Initialize as None globally
+connector = None
+
 async def getconn():
     """Create a new asyncpg connection using the Cloud SQL Connector."""
-    connector = Connector()
+    global connector
+    # Lazily initialize the connector inside the active event loop
+    if connector is None:
+        connector = Connector()
+
     conn = await connector.connect_async(
         INSTANCE_CONNECTION_NAME,
         "asyncpg",
@@ -42,11 +49,13 @@ else:
         pool_pre_ping=True,
     )
 
-async_session_factory = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
+# Use sessionmaker with AsyncSession as requested
+SessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
+
+# Alias for backward compatibility
+async_session_factory = SessionLocal
 
 class Base(DeclarativeBase):
     """SQLAlchemy declarative base."""
@@ -55,7 +64,7 @@ class Base(DeclarativeBase):
 async def get_db() -> AsyncSession:
     """Yield an async database session."""
     try:
-        async with async_session_factory() as session:
+        async with SessionLocal() as session:
             try:
                 yield session
                 await session.commit()
