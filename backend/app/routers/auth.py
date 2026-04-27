@@ -53,6 +53,9 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
             access_token=create_access_token(str(user.id), user.role.value),
             refresh_token=create_refresh_token(str(user.id)),
         )
+    except HTTPException:
+        # Preserve intentional auth responses (401/403/etc.).
+        raise
     except Exception as e:
         import traceback
         error_msg = f"INTERNAL LOGIN ERROR: {str(e)}\n{traceback.format_exc()}"

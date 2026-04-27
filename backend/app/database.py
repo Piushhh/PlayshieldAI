@@ -2,6 +2,7 @@
 
 import os
 import urllib.parse
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -55,10 +56,15 @@ async def get_db() -> AsyncSession:
             try:
                 yield session
                 await session.commit()
+            except HTTPException:
+                await session.rollback()
+                raise
             except Exception as e:
                 await session.rollback()
                 print(f"CRITICAL: DATABASE EXCEPTION: {e}")
                 raise
+    except HTTPException:
+        raise
     except Exception as global_e:
         print(f"CRITICAL: FAILED TO CREATE DATABASE SESSION: {global_e}")
         raise
