@@ -1,7 +1,7 @@
 import os
 from google.cloud.sql.connector import Connector
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 DB_USER = os.getenv("DB_USER", "postgres")
 DB_PASS = os.getenv("DB_PASS")
@@ -40,6 +40,7 @@ engine = create_async_engine(
 SessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
+Base = declarative_base()
 
 async def get_db():
     """Dependency to provide a database session to FastAPI routers."""
