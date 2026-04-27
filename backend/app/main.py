@@ -103,10 +103,3 @@ async def healthz():
         "db": db_status,
         "redis": redis_status,
     }
-
-
-if __name__ == "__main__":
-    import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 8080)) # Cloud Run default is usually 8080
-    uvicorn.run(app, host="0.0.0.0", port=port)
