@@ -40,6 +40,7 @@ engine = create_async_engine(
 SessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
+async_session_factory = SessionLocal
 Base = declarative_base()
 
 async def get_db():
