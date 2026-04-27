@@ -40,3 +40,11 @@ engine = create_async_engine(
 SessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
 )
+
+async def get_db():
+    """Dependency to provide a database session to FastAPI routers."""
+    async with SessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
