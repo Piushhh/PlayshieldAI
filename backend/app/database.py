@@ -1,5 +1,6 @@
 """Database engine and session management using Google Cloud SQL Connector."""
 
+import asyncio
 import os
 from google.cloud.sql.connector import Connector
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -15,15 +16,19 @@ DB_PASS = os.getenv("DB_PASS")
 DB_NAME = os.getenv("DB_NAME", "playshield-db")
 INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME", "playshield-ai:us-central1:playshield-db")
 
-# Initialize as None globally
+# Initialize globally and tie it to the active loop
 connector = None
+connector_loop = None
 
 async def getconn():
     """Create a new asyncpg connection using the Cloud SQL Connector."""
-    global connector
-    # Lazily initialize the connector inside the active event loop
-    if connector is None:
+    global connector, connector_loop
+    current_loop = asyncio.get_running_loop()
+
+    # Recreate connector when loop changes (e.g., Cloud Run worker lifecycle)
+    if connector is None or connector_loop is not current_loop:
         connector = Connector()
+        connector_loop = current_loop
 
     conn = await connector.connect_async(
         INSTANCE_CONNECTION_NAME,
@@ -40,6 +45,10 @@ if DB_PASS and INSTANCE_CONNECTION_NAME:
         "postgresql+asyncpg://",
         async_creator=getconn,
         echo=settings.DEBUG,
+        pool_size=5,
+        max_overflow=10,
+        pool_timeout=30,
+        pool_recycle=1800,
     )
 else:
     # Fallback for local development ONLY
@@ -51,7 +60,9 @@ else:
 
 # Use sessionmaker with AsyncSession as requested
 SessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
 )
 
 # Alias for backward compatibility
