@@ -90,6 +90,10 @@ export default function DashboardPage() {
     { name: "Review", value: stats?.medium_confidence_count || 0, fill: "#f3e37c" },
     { name: "Low", value: stats?.low_confidence_count || 0, fill: "#c5df7b" },
   ];
+  const hasTrendData = (stats?.trend_data ?? []).some(
+    (point) => point.detections > 0 || point.cases > 0
+  );
+  const hasConfidenceData = confidenceData.some((item) => item.value > 0);
 
   return (
     <div className="space-y-8">
@@ -144,7 +148,7 @@ export default function DashboardPage() {
 
         </div>
       </section>
-|
+
       <section className="animate-in" style={{ animationDelay: "0.05s" }}>
         <SectionDivider label="Global AI insights" />
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-4">
@@ -208,49 +212,57 @@ export default function DashboardPage() {
           title="Signals over the last seven days"
           className="animate-in p-6"
         >
-          <ResponsiveContainer width="100%" height={340}>
-            <AreaChart data={stats?.trend_data ?? []}>
-              <defs>
-                <linearGradient id="detectionsFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#7cd5e9" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="#7cd5e9" stopOpacity={0.08} />
-                </linearGradient>
-                <linearGradient id="casesFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="#c5df7b" stopOpacity={0.65} />
-                  <stop offset="100%" stopColor="#c5df7b" stopOpacity={0.08} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="rgba(24,23,18,0.18)" />
-              <XAxis
-                dataKey="date"
-                stroke="rgba(18,17,14,0.55)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="rgba(18,17,14,0.55)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip {...chartStyle()} />
-              <Area
-                type="monotone"
-                dataKey="detections"
-                stroke="#12110e"
-                strokeWidth={2}
-                fill="url(#detectionsFill)"
-              />
-              <Area
-                type="monotone"
-                dataKey="cases"
-                stroke="#6a8717"
-                strokeWidth={2}
-                fill="url(#casesFill)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          {hasTrendData ? (
+            <ResponsiveContainer width="100%" height={340}>
+              <AreaChart data={stats?.trend_data ?? []}>
+                <defs>
+                  <linearGradient id="detectionsFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#7cd5e9" stopOpacity={0.65} />
+                    <stop offset="100%" stopColor="#7cd5e9" stopOpacity={0.08} />
+                  </linearGradient>
+                  <linearGradient id="casesFill" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#c5df7b" stopOpacity={0.65} />
+                    <stop offset="100%" stopColor="#c5df7b" stopOpacity={0.08} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(24,23,18,0.18)" />
+                <XAxis
+                  dataKey="date"
+                  stroke="rgba(18,17,14,0.55)"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="rgba(18,17,14,0.55)"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip {...chartStyle()} />
+                <Area
+                  type="monotone"
+                  dataKey="detections"
+                  stroke="#12110e"
+                  strokeWidth={2}
+                  fill="url(#detectionsFill)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="cases"
+                  stroke="#6a8717"
+                  strokeWidth={2}
+                  fill="url(#casesFill)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[340px] items-center justify-center border border-[var(--color-line)] bg-[rgba(255,255,255,0.45)] px-6 text-center">
+              <p className="panel-subtle max-w-md">
+                Signal history will appear here once detections or cases start flowing in from scans.
+              </p>
+            </div>
+          )}
         </Panel>
 
         <Panel
@@ -258,29 +270,37 @@ export default function DashboardPage() {
           title="Threat mix"
           className="animate-in p-6"
         >
-          <ResponsiveContainer width="100%" height={340}>
-            <BarChart data={confidenceData} layout="vertical" margin={{ left: 10, right: 10 }}>
-              <CartesianGrid stroke="rgba(24,23,18,0.18)" />
-              <XAxis
-                type="number"
-                stroke="rgba(18,17,14,0.55)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                dataKey="name"
-                type="category"
-                width={90}
-                stroke="rgba(18,17,14,0.55)"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip {...chartStyle()} />
-              <Bar dataKey="value" radius={0} />
-            </BarChart>
-          </ResponsiveContainer>
+          {hasConfidenceData ? (
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={confidenceData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                <CartesianGrid stroke="rgba(24,23,18,0.18)" />
+                <XAxis
+                  type="number"
+                  stroke="rgba(18,17,14,0.55)"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={90}
+                  stroke="rgba(18,17,14,0.55)"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip {...chartStyle()} />
+                <Bar dataKey="value" radius={0} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[340px] items-center justify-center border border-[var(--color-line)] bg-[rgba(255,255,255,0.45)] px-6 text-center">
+              <p className="panel-subtle max-w-md">
+                Confidence bands will populate after the first detections are scored.
+              </p>
+            </div>
+          )}
 
           <div className="mt-6 grid grid-cols-2 gap-px border border-[var(--color-line)] bg-[var(--color-line)]">
             <StatCard

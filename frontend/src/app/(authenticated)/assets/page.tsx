@@ -28,21 +28,28 @@ export default function AssetsPage() {
   const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
   const [scanningAssetIds, setScanningAssetIds] = useState<Set<string>>(new Set());
 
-  const loadAssets = () => {
+  const loadAssets = async () => {
     setLoading(true);
-    api
-      .getAssets()
-      .then(setAssets)
-      .catch((currentError: Error) => setError(currentError.message))
-      .finally(() => setLoading(false));
+    setError("");
+    try {
+      const nextAssets = await api.getAssets();
+      setAssets(nextAssets);
+    } catch (currentError) {
+      setError(currentError instanceof Error ? currentError.message : "Unable to load assets");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRunScan = async (assetId: string) => {
     setScanningAssetIds((prev) => new Set(prev).add(assetId));
+    setError("");
     try {
-      // POST /assets/{id}/analyze
-      await api.post(`/assets/${assetId}/analyze`, {});
-      await loadAssets();
+      const updatedAsset = await api.post<AssetRecord>(`/assets/${assetId}/analyze`, {});
+      setAssets((prev) =>
+        prev.map((asset) => (asset.id === assetId ? updatedAsset : asset))
+      );
+      setExpandedAssetId(assetId);
     } catch (currentError) {
       console.error("AI Scan failed", currentError);
       setError(currentError instanceof Error ? currentError.message : "AI Scan failed");
@@ -80,7 +87,7 @@ export default function AssetsPage() {
       // Use the dedicated upload route
       await api.uploadAsset(form);
       setShowUpload(false);
-      loadAssets();
+      await loadAssets();
     } catch (currentError) {
       console.error("Upload failed", currentError);
       setError(currentError instanceof Error ? currentError.message : "Upload failed");

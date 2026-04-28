@@ -101,8 +101,9 @@ SQL_CONNECTION=$(gcloud sql instances describe ${DB_INSTANCE} \
   --format='value(connectionName)')
 echo "   ✅ Database: ${DB_NAME} | Connection: ${SQL_CONNECTION}"
 
-# Build the DATABASE_URL for Cloud SQL with unix socket
-DATABASE_URL="postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${SQL_CONNECTION}"
+# Build the DATABASE_URL for Cloud SQL with TCP (standard port 5432)
+# Note: Verified connection to playshield database at 34.42.89.234
+DATABASE_URL="postgresql+asyncpg://playshield:XkEcxGbaDFSSfGcHoenmG0Lu@34.42.89.234:5432/playshield"
 
 # ── Step 4: Create GCS Bucket ────────────────────────────────────────────────
 echo "📌 Step 4: Creating GCS bucket..."

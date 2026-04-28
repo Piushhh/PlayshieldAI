@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import traceback
 from pathlib import Path
 
 from fastapi import UploadFile
@@ -14,7 +15,6 @@ from app.models import Asset, Detection, MediaType
 
 settings = get_settings()
 
-
 async def create_asset(
     db: AsyncSession,
     owner_id: uuid.UUID,
@@ -25,12 +25,10 @@ async def create_asset(
     media_type: str,
     file: UploadFile,
 ) -> Asset:
-    """Create a new protected asset and save the uploaded file."""
     asset_id = uuid.uuid4()
     ext = Path(file.filename).suffix if file.filename else ".bin"
     filename = f"{asset_id}{ext}"
 
-    # Save locally
     media_dir = Path(settings.MEDIA_DIR) / "assets"
     media_dir.mkdir(parents=True, exist_ok=True)
     local_path = media_dir / filename
@@ -39,14 +37,12 @@ async def create_asset(
     with open(local_path, "wb") as f:
         f.write(content)
 
-    # Optionally upload to GCS (when configured)
     gcs_uri = None
     try:
         from app.services.storage_service import upload_to_gcs
-
         gcs_uri = await upload_to_gcs(content, f"assets/{filename}", file.content_type)
     except Exception:
-        pass  # GCS optional in local dev
+        pass
 
     asset = Asset(
         id=asset_id,
@@ -64,9 +60,7 @@ async def create_asset(
     await db.flush()
     return asset
 
-
 async def list_assets(db: AsyncSession, owner_id: uuid.UUID | None = None) -> list[Asset]:
-    """List assets scoped to the owner. If owner_id is None, list all (admin)."""
     query = (
         select(Asset)
         .options(selectinload(Asset.detections).selectinload(Detection.cases))
@@ -77,54 +71,64 @@ async def list_assets(db: AsyncSession, owner_id: uuid.UUID | None = None) -> li
     result = await db.execute(query)
     return list(result.scalars().all())
 
-
 async def get_asset(db: AsyncSession, asset_id: uuid.UUID) -> Asset | None:
-    """Get a single asset by ID."""
     result = await db.execute(
         select(Asset).where(Asset.id == asset_id).options(selectinload(Asset.fingerprints))
     )
     return result.scalar_one_or_none()
 
-
 async def count_assets(db: AsyncSession, owner_id: uuid.UUID | None = None) -> int:
-    """Count total assets, optionally scoped to owner."""
     q = select(func.count(Asset.id))
     if owner_id:
         q = q.where(Asset.owner_id == owner_id)
     result = await db.execute(q)
     return result.scalar() or 0
 
-
 async def delete_asset(db: AsyncSession, asset_id: uuid.UUID, owner_id: uuid.UUID) -> bool:
-    """Delete an asset (only by owner)."""
     asset = await get_asset(db, asset_id)
     if not asset or asset.owner_id != owner_id:
         return False
-    # Delete local file
     if asset.media_local_path and os.path.exists(asset.media_local_path):
         os.remove(asset.media_local_path)
     await db.delete(asset)
     await db.flush()
     return True
 
+async def analyze_asset(db: AsyncSession, asset_id: uuid.UUID) -> Asset:
+    asset = await get_asset(db, asset_id)
+    if not asset:
+        raise ValueError("Asset not found")
 
-async def analyze_asset(db: AsyncSession, asset: Asset) -> Asset:
-    """Analyze asset using Gemini and update its rationale/status."""
-    from app.services.gemini_service import analyze_asset_risk
-    
-    asset_data = {
-        "title": asset.title,
-        "license_type": asset.license_type,
-        "media_type": asset.media_type.value if asset.media_type else "image",
-        "allowed_use_notes": asset.allowed_use_notes,
-    }
-    
-    asset.gemini_status = "scanning"
-    await db.flush()
-    
-    result = await analyze_asset_risk(asset_data)
-    
-    asset.gemini_status = result.status
-    asset.gemini_rationale = result.rationale
+    try:
+        from app.services.gemini_service import analyze_asset_risk
+        
+        # Safely handle the Enum just in case
+        m_type = asset.media_type.value if hasattr(asset.media_type, "value") else str(asset.media_type)
+        
+        asset_data = {
+            "title": asset.title,
+            "license_type": asset.license_type,
+            "media_type": m_type,
+            "allowed_use_notes": asset.allowed_use_notes,
+        }
+        
+        asset.gemini_status = "scanning"
+        await db.flush()
+        
+        result = await analyze_asset_risk(asset_data)
+        
+        # Safely extract data whether it returns a dict or an object
+        if isinstance(result, dict):
+            asset.gemini_status = result.get("status", "completed")
+            asset.gemini_rationale = result.get("rationale", "Scan finished.")
+        else:
+            asset.gemini_status = getattr(result, "status", "completed")
+            asset.gemini_rationale = getattr(result, "rationale", "Scan finished.")
+            
+    except Exception as e:
+        # THE MAGIC TRICK: Turn the backend crash into visual UI text
+        asset.gemini_status = "failed"
+        asset.gemini_rationale = f"CRASH LOG: {str(e)}"
+        
     await db.flush()
     return asset

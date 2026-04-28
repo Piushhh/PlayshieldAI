@@ -1,70 +1,26 @@
-"""Database engine and session management."""
-
-import os
 import urllib.parse
-from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from app.config import get_settings
+# 1. URL-encode the password to handle the '@' symbol safely
+SAFE_PASS = urllib.parse.quote_plus("Th0usan@")
 
-settings = get_settings()
+# 2. Hardwire the exact connection string to your true database instance
+DB_URL = f"postgresql+asyncpg://postgres:{SAFE_PASS}@/postgres?host=/cloudsql/playshield-ai:us-central1:playshield-sql"
 
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASS = os.getenv("DB_PASS")
-DB_NAME = os.getenv("DB_NAME", "playshield-db")
-INSTANCE_CONNECTION_NAME = os.getenv("INSTANCE_CONNECTION_NAME")
-
-if DB_PASS and INSTANCE_CONNECTION_NAME:
-    # URL-encode the password to safely handle special characters like '@'
-    SAFE_PASS = urllib.parse.quote_plus(DB_PASS)
-    
-    # Connect via Cloud Run's native Unix socket sidecar
-    DB_URL = f"postgresql+asyncpg://{DB_USER}:{SAFE_PASS}@/{DB_NAME}?host=/cloudsql/{INSTANCE_CONNECTION_NAME}"
-    
-    engine = create_async_engine(
-        DB_URL,
-        echo=settings.DEBUG,
-        pool_pre_ping=True,
-        pool_size=5,
-        max_overflow=10,
-    )
-else:
-    # Fallback for local development ONLY
-    engine = create_async_engine(
-        settings.DATABASE_URL,
-        echo=settings.DEBUG,
-        pool_pre_ping=True,
-    )
-
-# Use sessionmaker with AsyncSession
-SessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-)
-
-# Alias for backward compatibility (Fixes the Revision 39 Crash)
+# 3. Create Engine with zero local fallbacks
+engine = create_async_engine(DB_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 async_session_factory = SessionLocal
 
 class Base(DeclarativeBase):
-    """SQLAlchemy declarative base."""
     pass
 
-async def get_db() -> AsyncSession:
-    """Yield an async database session."""
-    try:
-        async with SessionLocal() as session:
-            try:
-                yield session
-                await session.commit()
-            except HTTPException:
-                await session.rollback()
-                raise
-            except Exception as e:
-                await session.rollback()
-                print(f"CRITICAL: DATABASE EXCEPTION: {e}")
-                raise
-    except HTTPException:
-        raise
-    except Exception as global_e:
-        print(f"CRITICAL: FAILED TO CREATE DATABASE SESSION: {global_e}")
-        raise
+async def get_db():
+    async with SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

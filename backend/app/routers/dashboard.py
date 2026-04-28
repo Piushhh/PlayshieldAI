@@ -60,6 +60,13 @@ async def _get_recent_cases(db: AsyncSession, owner_id=None, limit: int = 200) -
     return list((await db.execute(query)).scalars().all())
 
 
+async def _get_recent_assets(db: AsyncSession, owner_id=None, limit: int = 200) -> list[Asset]:
+    query = select(Asset).order_by(Asset.created_at.desc()).limit(limit)
+    if owner_id:
+        query = query.where(Asset.owner_id == owner_id)
+    return list((await db.execute(query)).scalars().all())
+
+
 def _domain_from_source(url: str | None) -> str:
     if not url:
         return "Unknown source"
@@ -103,11 +110,17 @@ def _top_flagged_sources(cases: list[Case]) -> list[dict]:
     return insights
 
 
-def _gemini_overview(cases: list[Case]) -> list[dict]:
-    ready = sum(1 for case in cases if case.gemini_status == "ready")
-    fallback = sum(1 for case in cases if case.gemini_status == "fallback")
-    delayed = sum(1 for case in cases if case.gemini_status in {"pending", "error"})
-    reviewed = sum(1 for case in cases if case.status == CaseStatus.REVIEW)
+def _gemini_overview(cases: list[Case], assets: list[Asset]) -> list[dict]:
+    if cases:
+        ready = sum(1 for case in cases if case.gemini_status == "ready")
+        fallback = sum(1 for case in cases if case.gemini_status == "fallback")
+        delayed = sum(1 for case in cases if case.gemini_status in {"pending", "error"})
+        reviewed = sum(1 for case in cases if case.status == CaseStatus.REVIEW)
+    else:
+        ready = sum(1 for asset in assets if asset.gemini_status in {"ready", "completed"})
+        fallback = sum(1 for asset in assets if asset.gemini_status == "fallback")
+        delayed = sum(1 for asset in assets if asset.gemini_status in {"pending", "scanning", "failed"})
+        reviewed = 0
 
     return [
         {
@@ -155,6 +168,7 @@ async def get_stats(
     open_c = await count_open_cases(db, owner_id=owner_id)
     trend = await _get_trend_data(db, owner_id=owner_id)
     recent_cases = await _get_recent_cases(db, owner_id=owner_id)
+    recent_assets = await _get_recent_assets(db, owner_id=owner_id)
 
     return DashboardStats(
         total_assets=total_a,
@@ -166,5 +180,5 @@ async def get_stats(
         low_confidence_count=lo,
         trend_data=trend,
         top_flagged_sources=_top_flagged_sources(recent_cases),
-        gemini_overview=_gemini_overview(recent_cases),
+        gemini_overview=_gemini_overview(recent_cases, recent_assets),
     )
