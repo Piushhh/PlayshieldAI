@@ -128,11 +128,14 @@ async def trigger_asset_analysis(
     
     if asset.owner_id != user.id and user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Not authorized")
-    
+
+    # Capture scalar ID early to avoid lazy-load/expired-attribute access after async DB work.
+    asset_id_for_audit = asset.id
+
     await analyze_asset(db, asset)
     await db.commit()
-    
+
     # Audit log
-    await log_action(db, user.id, "asset", asset.id, "ai_scan_triggered")
-    
+    await log_action(db, user.id, "asset", asset_id_for_audit, "ai_scan_triggered")
+
     return asset
