@@ -17,6 +17,14 @@ logger = structlog.get_logger()
 async def lifespan(app: FastAPI):
     """Application startup/shutdown lifecycle."""
     logger.info("Starting PlayShield AI", version=settings.APP_VERSION)
+    
+    # --- NEW: Auto-create database tables on startup ---
+    from app.database import engine
+    from app.models import Base
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    # ---------------------------------------------------
+
     load_faiss_index()
     yield
     logger.info("Shutting down PlayShield AI")
